@@ -31,14 +31,12 @@ class Solution:
         self.model = None
         self.sess = None    
 
-        
-
     def hook(self):
-        self.create_nnmodel()
-        self.modeltrain()
+        self.create()
+        self.fit()
         self.result()
 
-    def create_nnmodel(self):
+    def create(self):
         
         # *******
         # 신경망 모델 구성
@@ -65,13 +63,13 @@ class Solution:
         # 소프트맥스 함수는 다음처럼 결과값을 전체합이 1인 확률로 만들어주는 함수
         # 예) [8.04, 2.76, -6.52] -> [0.53, 0.24, 0.23]
 
-        self.cost = tf.reduce_mean(-tf.reduce_sum(self.Y * tf.log(self.model), axis = 1))
-        self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-        self.train_op = self.optimizer.minimize(self.cost)
+        cost = tf.reduce_mean(-tf.reduce_sum(self.Y * tf.log(self.model), axis = 1))
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
+        self.train_op = optimizer.minimize(cost)
         return self.train_op
         # 비용함수를 최소화 시키면 -> 경사도를 0로 만들어 가면 그 값이 최적화된 값일 것이다...
 
-    def modeltrain(self):
+    def fit(self):
         
         # **********
         # 신경망 학습 모델
@@ -104,5 +102,4 @@ class Solution:
 
 
 if __name__=='__main__':
-    
     Solution().hook()
