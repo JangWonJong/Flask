@@ -1,27 +1,42 @@
-class Solution:
-    def __init__(self) -> None:
-        import tensorflow as tf
-        import matplotlib.pyplot as plt
 
+import tensorflow.compat.v1 as tf
+import matplotlib.pyplot as plt
+tf.disable_v2_behavior()
+
+class Solution:
+    def __init__(self) -> object:
+        self.W_history = []
+        self.cost_history = []
+        self.X = []
+        self.Y = []
+
+    def hook(self):
+        self.create()
+        self.checkchart()
+
+    def create(self):
         tf.set_random_seed(777)
 
-        X = [1, 2, 3]
-        Y = [1, 2, 3]
+        self.X = [1, 2, 3]
+        self.Y = [1, 2, 3]
 
         W = tf.placeholder(tf.float32)
-        hypothesis = X * W
+        hypothesis = self.X * W
 
-        cost = tf.reduce_mean(tf.square(hypothesis - Y))
+        cost = tf.reduce_mean(tf.square(hypothesis - self.Y))
         sess = tf.Session()
-
-        W_history = []
-        cost_history = []
 
         for i in range(-30, 50):
             curr_W = i * 0.1
             curr_cost = sess.run(cost, {W: curr_W})
-            W_history.append(curr_W)
-            cost_history.append(curr_cost)
+            self.W_history.append(curr_W)
+            self.cost_history.append(curr_cost)
+
+    def checkchart(self):
         # 차트로 확인
-        plt.plot(W_history, cost_history)
+        plt.plot(self.W_history, self.cost_history)
         plt.show()
+
+
+if __name__=='__main__':
+    Solution().hook()
