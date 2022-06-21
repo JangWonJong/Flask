@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>양배추 가격 예측</h1>
+    <form action="/cabbage" method="post">
+        온도: <input type="text" name="num1">
+        강수량: <input type="text" name="num2">
+        
+        <input type="submit" value="Submit">
+    </form>
+    {% if result %}
+        <h1>결과: {{result}}</h1>
+    {% endif %}    
+</body>
+</html>

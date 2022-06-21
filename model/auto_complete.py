@@ -27,8 +27,9 @@ class Solution:
 
     def hook(self):
         self.make_batch()
-        self.create_model()
-        self.train_model()
+        seq_data = self.seq_data
+        self.create_model(seq_data)
+        self.train_model(seq_data)
         self.validate_model()
 
     def make_batch(self):
@@ -45,7 +46,7 @@ class Solution:
         # ****
         # 옵션 설정
         # ****
-    def create_model(self):
+    def create_model(self, seq_data):
         learning_rate = 0.01
         n_hidden = 128
         self.total_epoch = 30 # 훈련횟수
@@ -93,11 +94,11 @@ class Solution:
         # *******
         # 신경망 모델 학습
         # *******
-    def train_model(self):
+    def train_model(self, seq_data):
         sess = tf.Session()
         sess.run(tf.global_variables_initializer())
 
-        input_batch, target_batch = self.make_batch(self.seq_data)
+        input_batch, target_batch = self.make_batch(seq_data)
         for epoch in range(self.total_epoch):
             _, loss = sess.run([self.optimizer, self.cost],
                             {self.X: input_batch, self.Y: target_batch})
