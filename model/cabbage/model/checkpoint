@@ -1,2 +1,2 @@
-model_checkpoint_path: "c:\\Users\\bitcamp\\EI\\Flask\\model\\cabbage\\model\\cabbage_model-1000"
-all_model_checkpoint_paths: "c:\\Users\\bitcamp\\EI\\Flask\\model\\cabbage\\model\\cabbage_model-1000"
+model_checkpoint_path: "c:\\Users\\bitcamp\\EI\\Flask\\model\\cabbage\\model\\cabbage-1000"
+all_model_checkpoint_paths: "c:\\Users\\bitcamp\\EI\\Flask\\model\\cabbage\\model\\cabbage-1000"
