@@ -1,11 +1,11 @@
-
+from tkinter.messagebox import NO
 import tensorflow.compat.v1 as tf
-import numpy as np
 tf.disable_v2_behavior()
+import numpy as np
+
 
 class Solution:
-    def __init__(self) -> object:
-
+    def __init__(self) -> None:
         self.char_arr = ['a', 'b', 'c', 'd', 'e', 'f', 'g',
                 'h', 'i', 'j', 'k', 'l', 'm', 'n',
                 'o', 'p', 'q', 'r', 's', 't', 'u',
@@ -18,51 +18,58 @@ class Solution:
         self.dic_len = len(self.num_dic)
 
         self.seq_data = ['word', 'wood', 'deep', 'dive', 'cold', 'cool', 'load', 'love', 'kiss', 'kind']
+        # ****
+        # 옵션 설정
+        # ****
+        self.learning_rate = 0.01
+        self.n_hidden = 128
+        self.total_epoch = 30
+        self.n_step = 3
+        # 타입스텝: [1, 2, 3] => 3
+        # RNN 을 구성하는 시퀀스의 갯수
+        self.n_input = self.dic_len
+        self.n_class = self.dic_len
+        # 입력값 크기. 알파벳에 대한 ohe 이므로 26개가 됨
+        # 따라서 c 를 선택하면 [0 0 1 0 0 0 .....0]
+        # 출력값도 입력값과 마찬가지로 26개의 알파벳으로 분류합니다.
+        self.optimizer = None
+        self.cost = None
+        self.model1 = None
         self.X = None
         self.Y = None
-        self.optimizer = None
-        self.model1 = None
-        self.sess = None 
-        self.cost = None
-        self.total_epoch = 30
+        self.sess = None
 
     def hook(self):
         self.make_batch()
         self.create_model()
-        self.train_model()
-        self.validate_model()
+        self.fit()
+        self.eval()
 
     def make_batch(self):
+        num_dic = self.num_dic
+        seq_data = self.seq_data
+        dic_len = self.dic_len
+
         input_batch = []
         target_batch = []
 
-        for seq in self.seq_data:
-            input = [self.num_dic[n] for n in seq[:-1]]
-            target = self.num_dic[seq[-1]]  # -1 은 all
-            input_batch.append(np.eye(self.dic_len)[input])
+        for seq in seq_data:
+            input = [num_dic[n] for n in seq[:-1]]
+            target = num_dic[seq[-1]]  # -1 은 all
+            input_batch.append(np.eye(dic_len)[input])
             target_batch.append(target)
         return input_batch, target_batch
 
-        # ****
-        # 옵션 설정
-        # ****
     def create_model(self):
-        learning_rate = 0.01
-        n_hidden = 128
-        self.total_epoch = 30 # 훈련횟수
-        n_step = 3
-        # 타입스텝: [1, 2, 3] => 3
-        # RNN 을 구성하는 시퀀스의 갯수
-        n_input = n_class = self.dic_len
-        # 입력값 크기. 알파벳에 대한 ohe 이므로 26개가 됨
-        # 따라서 c 를 선택하면 [0 0 1 0 0 0 .....0]
-        # 출력값도 입력값과 마찬가지로 26개의 알파벳으로 분류합니다.
-        n_input = n_class = self.dic_len
-
+        n_step = self.n_step
+        n_input = self.n_input
+        n_hidden = self.n_hidden
+        n_class = self.n_class
+        learning_rate = self.learning_rate
         # *******
         # 신경망 모델 구성
         # *******
-    
+
         self.X = tf.placeholder(tf.float32, [None, n_step, n_input])
         self.Y = tf.placeholder(tf.int32, [None])
 
@@ -91,43 +98,61 @@ class Solution:
         ))
         self.optimizer = tf.train.AdamOptimizer(learning_rate).minimize(self.cost)
 
+    def fit(self):
+        total_epoch = self.total_epoch
+        optimizer = self.optimizer
+        cost = self.cost 
+        X = self.X
+        Y = self.Y
+
         # *******
         # 신경망 모델 학습
         # *******
-    def train_model(self):
+
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
         input_batch, target_batch = self.make_batch()
-        for epoch in range(self.total_epoch):
-            _, loss = self.sess.run([self.optimizer, self.cost],
-                            {self.X: input_batch, self.Y: target_batch})
+        for epoch in range(total_epoch):
+            _, loss = self.sess.run([optimizer, cost],
+                            {X: input_batch, Y: target_batch})
             print("Epoch: ", "%04d" % (epoch + 1),
                 "cost: ", "{:.6f}".format(loss))
         print('===최적화 완료===')
 
+    def eval(self):
+        model1 = self.model1
+        seq_data = self.seq_data
+        char_arr = self.char_arr
+        X = self.X
+        Y = self.Y
+
         # *******
         # 신경망 모델 검증
         # *******
-    def validate_model(self):
-        prediction = tf.cast(tf.argmax(self.model1, 1), tf.int32)
-        prediction_check = tf.equal(prediction, self.Y)
+        prediction = tf.cast(tf.argmax(model1, 1), tf.int32)
+        prediction_check = tf.equal(prediction, Y)
         # 문자열 값비교 equal
         accuracy = tf.reduce_mean(tf.cast(prediction_check, tf.float32))
         input_batch, target_batch = self.make_batch()
 
         predict, accuracy_val = self.sess.run([prediction, accuracy],
-                                        {self.X: input_batch, self.Y: target_batch})
+                                        {X: input_batch, Y: target_batch})
 
         predict_words = []
-        for idx, val in enumerate(self.seq_data):
-            last_char = self.char_arr[predict[idx]]
+        for idx, val in enumerate(seq_data):
+            last_char = char_arr[predict[idx]]
             predict_words.append(val[:3] + last_char)
 
         print('\n ===== 예측결과 ====')
-        print('입력값: ', [W[:3] + ' ' for W in self.seq_data])
+        print('입력값: ', [W[:3] + ' ' for W in seq_data])
         print('예측값: ', predict_words)
         print('정확도: ', accuracy_val)
 
 if __name__=='__main__':
     Solution().hook()
+
+
+
+
+
