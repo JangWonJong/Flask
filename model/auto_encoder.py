@@ -1,14 +1,13 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-
 from tensorflow.examples.tutorials.mnist import input_data
 
-mnist = input_data.read_data_sets("./mnist/data/", one_hot=True)
+
 
 class Solution:
     def __init__(self) -> None:
-
+        mnist = input_data.read_data_sets("./mnist/data/", one_hot=True)
         # ******
         # 옵션 설정
         # ******

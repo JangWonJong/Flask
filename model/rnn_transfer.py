@@ -22,14 +22,27 @@ class Solution:
         self.n_hidden = 128
         self.total_epoch = 100
 
-        self.n_class = n_input = self.dic_len
+        self.n_class = self.n_input = self.dic_len
+        self.model = None
+        self.sess = None
+        self.enc_input = None
+        self.dec_input = None
+        self.targets = None
+        self.char_arr =None
+        self.optimizer = None
+        self.cost = None
+        self.input_batch = []
+        self.output_batch = []
+        self.target_batch = []
 
-    def make_batch(self, seq_data):
-        input_batch = []
-        output_batch = []
-        target_batch = []
+    def hook(self):
+        self.make_batch()
+        self.create_model()
+        self.translate()
 
-        for seq in seq_data:
+    def make_batch(self):
+        
+        for seq in self.seq_data:
             input = [self.num_dic[n] for n in seq[0]]
             # 인코더 셀의 입력값. 입력단어의 글자들을 한글자씩 떼어 배열로 만든다
             output = [self.num_dic[n] for n in ('S' + seq[1])]
@@ -44,10 +57,10 @@ class Solution:
             """
             target = [self.num_dic[n] for n in (seq[1] + 'E')]
             
-            input_batch.append(np.eye(self.dic_len)[input])
-            output_batch.append(np.eye(self.dic_len)[output])
-            target_batch.append(target)
-        return input_batch, output_batch, target_batch
+            self.input_batch.append(np.eye(self.dic_len)[input])
+            self.output_batch.append(np.eye(self.dic_len)[output])
+            self.target_batch.append(target)
+        return self.input_batch, self.output_batch, self.target_batch
                 
         
         # 입력과 출력의 형태가 ohe 와 같으므로 크기도 동일함
@@ -55,64 +68,67 @@ class Solution:
         # *****
         # 신경망 모델 구성
         # *****
-
-        enc_input = tf.placeholder(tf.float32, [None, None, n_input])
+    def create_model(self):
+        enc_input = tf.placeholder(tf.float32, [None, None, self.n_input])
         # [배치사이즈, 타입스텝, 인풋사이즈]
-        dec_input = tf.placeholder(tf.float32, [None, None, n_input])
+        dec_input = tf.placeholder(tf.float32, [None, None, self.n_input])
         targets = tf.placeholder(tf.int64, [None, None]) # [배치사이즈, 타입스텝]
 
         # 인코더 셀을 구성
         with tf.variable_scope('encode'):
-            enc_cell = tf.nn.rnn_cell.BasicRNNCell(n_hidden)
+            enc_cell = tf.nn.rnn_cell.BasicRNNCell(self.n_hidden)
             enc_cell = tf.nn.rnn_cell.DropoutWrapper(enc_cell, output_keep_prob=0.5)
             outputs, enc_states = tf.nn.dynamic_rnn(enc_cell, enc_input, dtype=tf.float32)
         # 디코더 셀을 구성
         with tf.variable_scope('dencode'):
-            dec_cell = tf.nn.rnn_cell.BasicRNNCell(n_hidden)
+            dec_cell = tf.nn.rnn_cell.BasicRNNCell(self.n_hidden)
             dec_cell = tf.nn.rnn_cell.DropoutWrapper(dec_cell, output_keep_prob=0.5)
             outputs, dec_states = tf.nn.dynamic_rnn(dec_cell, dec_input,
                                                     initial_state=enc_states ,dtype=tf.float32)
 
-        model = tf.layers.dense(outputs, n_class, activation=None)
-        cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
+        model = tf.layers.dense(outputs, self.n_class, activation=None)
+        self.cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=model, labels=targets
         ))
-        optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
+        self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cost)
 
         # *****
         # 신경망 모델 학습
         # *****
-        sess = tf.Session()
-        sess.run(tf.global_variables_initializer())
-        input_batch, output_batch, target_batch = make_batch(seq_data)
+        self.sess = tf.Session()
+        self.sess.run(tf.global_variables_initializer())
+        self.input_batch, self.output_batch, self.target_batch = self.make_batch()
 
-        for epoch in range(total_epoch):
-            _, loss = sess.run([optimizer, cost],
-                            {enc_input: input_batch,
-                                dec_input: output_batch,
-                                targets: target_batch})
+        for epoch in range(self.total_epoch):
+            _, loss = self.sess.run([self.optimizer, self.cost],
+                            {self.enc_input: self.input_batch,
+                                self.dec_input: self.output_batch,
+                                targets: self.target_batch})
             print('Epoch: ', '%04d' % (epoch + 1),'cost: ','{:6f}'.format(loss))
         print('-------최적화 완료------')
 
         # *****
         # 번역 테스트
         # *****
-        def translate(word):
-            seq_data = [word, 'P' * len(word)]
-            input_batch, output_batch, target_batch = make_batch([seq_data])
-            prediction = tf.arg_max(model, 2)
-            result = sess.run(prediction,
-                            {enc_input: input_batch,
-                            dec_input: output_batch,
-                            targets: target_batch})
-            decoded = [char_arr[i] for i in result[0]]
-            end = decoded.index('E')
-            translated = ' '.join(decoded[:end])
-            return translated
+    def translate(self,word):
+        seq_data = [word, 'P' * len(word)]
+        self.input_batch, self.output_batch, self.target_batch = self.make_batch([seq_data])
+        prediction = tf.arg_max(self.model, 2)
+        result = self.sess.run(prediction,
+                        {self.enc_input: self.input_batch,
+                        self.dec_input: self.output_batch,
+                        self.targets: self.target_batch})
+        decoded = [self.char_arr[i] for i in result[0]]
+        end = decoded.index('E')
+        translated = ' '.join(decoded[:end])
+        return translated
 
-        print('======= 번역 테스트 ========')
-        print('word -> ', translate('word'))
-        print('love -> ', translate('love'))
-        print('loev -> ', translate('loev'))
-        print('girl -> ', translate('girl'))
-        print('abcd -> ', translate('abcd'))
+    print('======= 번역 테스트 ========')
+    print('word -> ', translate('word'))
+    print('love -> ', translate('love'))
+    print('loev -> ', translate('loev'))
+    print('girl -> ', translate('girl'))
+    print('abcd -> ', translate('abcd'))
+
+if __name__=='__main__':
+    Solution().hook()
